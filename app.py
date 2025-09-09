@@ -3,6 +3,7 @@ from pymongo import MongoClient
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 import matplotlib
+import os
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import io, base64
@@ -30,7 +31,9 @@ def get_weather_stations():
     return stations
 
 # MongoDB connection
-client = MongoClient("mongodb+srv://ninoespe:ninoespe@cluster0.9gbawhm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+MONGODB_URI = os.environ.get('MONGODB_URI', 
+    "mongodb+srv://ninoespe:ninoespe@cluster0.9gbawhm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient(MONGODB_URI)
 db = client["weatherDB"]
 collection = db["weather_data"]
 
@@ -157,4 +160,8 @@ def dashboard():
                          current_time=datetime.now().strftime('%B %d, %Y %H:%M'))
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8000)
+    # Use production server when deployed, development server locally
+    if os.environ.get('RENDER'):
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    else:
+        app.run(debug=True, port=8000)
