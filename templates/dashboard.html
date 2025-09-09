@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Weather Analytics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --accent-color: #3498db;
+      --background-color: #f8f9fa;
+      --card-background: #ffffff;
+      --text-color: #2c3e50;
+      --border-radius: 12px;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background-color: var(--card-background);
+      padding: 32px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
+    h2 {
+      color: var(--primary-color);
+      margin-bottom: 32px;
+      text-align: center;
+      font-size: 2.2em;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    h3 {
+      color: var(--primary-color);
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .chart-container, .map-container {
+      background: var(--card-background);
+      padding: 24px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
+    .chart-container:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08);
+      transition: var(--transition);
+    }
+
+    #map {
+      height: 450px;
+      width: 100%;
+      border-radius: calc(var(--border-radius) - 4px);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    .station-selector {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 20px;
+      background: linear-gradient(to right, rgba(52, 152, 219, 0.1), rgba(44, 62, 80, 0.1));
+      border-radius: var(--border-radius);
+    }
+
+    .station-selector label {
+      margin-right: 16px;
+      font-weight: 500;
+      color: var(--primary-color);
+      font-size: 1.1em;
+    }
+
+    select {
+      padding: 12px 24px;
+      border-radius: var(--border-radius);
+      border: 2px solid rgba(0, 0, 0, 0.1);
+      font-size: 1em;
+      background-color: var(--card-background);
+      cursor: pointer;
+      min-width: 280px;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1em;
+      transition: var(--transition);
+    }
+
+    select:hover, select:focus {
+      border-color: var(--accent-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    .forecast-note {
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      margin-bottom: 24px;
+      padding: 12px;
+      background-color: rgba(52, 152, 219, 0.05);
+      border-radius: var(--border-radius);
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+      margin-top: 32px;
+    }
+
+    @media (min-width: 1200px) {
+      .grid-container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+  <script>
+    function changeStation(station) {
+      // Update URL without reloading the page
+      const url = new URL(window.location);
+      url.searchParams.set('station', station);
+      window.history.pushState({}, '', url);
+      
+      // Fetch new data and update chart
+      updateChart(station);
+    }
+    
+    function updateChart(station) {
+      fetch(`/daily-stats?station=${station}`)
+        .then(r => r.json())
+        .then(data => {
+          // Split data into historical and forecast
+          const historical = data.filter(d => d.type === 'historical');
+          const forecast = data.filter(d => d.type === 'forecast');
+          
+          // Get the chart instance
+          const chart = Chart.getChart('tempChart');
+          
+          // Update the datasets
+          chart.data.labels = data.map(d => d.timestamp);
+          chart.data.datasets[0].data = historical.map(d => ({x: d.timestamp, y: d.temperature}));
+          chart.data.datasets[1].data = forecast.map(d => ({x: d.timestamp, y: d.temperature}));
+          
+          // Update chart title
+          chart.options.plugins.title.text = `Weather Station: ${station.toUpperCase()}`;
+          
+          // Refresh the chart
+          chart.update();
+        })
+        .catch(error => {
+          console.error('Error fetching data:', error);
+          document.getElementById('tempChart').innerHTML = 'Error loading weather data. Please try again.';
+        });
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h2>Davao Oriental Weather Analytics Dashboard</h2>
+    
+    <div class="station-selector">
+      <label for="station">Select Weather Station:</label>
+      <select id="station" onchange="changeStation(this.value)">
+        {% for station_id, info in stations.items() %}
+        <option value="{{ station_id }}" {% if station_id == selected_station %}selected{% endif %}>
+          {{ info.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="grid-container">
+      <div class="map-container">
+        <h3>Weather Stations Map</h3>
+        <div id="map"></div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-info">
+          <p class="forecast-note">Note: Dashed line indicates 7-day temperature forecast based on historical data</p>
+        </div>
+        <canvas id="tempChart"></canvas>
+      </div>
+    </div>
+  </div>  <script>
+    // Initialize map with scrollWheelZoom disabled by default
+    var map = L.map('map', {
+      scrollWheelZoom: false,
+      center: [7.2, 126.3],
+      zoom: 9
+    });
+    var selectedMarker = null;
+
+    // Add base map layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Enable scroll zoom only when map is clicked/focused
+    map.on('click', function() {
+      if (!map.scrollWheelZoom.enabled()) {
+        map.scrollWheelZoom.enable();
+      }
+    });
+
+    // Disable scroll zoom when mouse leaves the map
+    document.getElementById('map').addEventListener('mouseleave', function() {
+      map.scrollWheelZoom.disable();
+    });
+
+    // Add markers for each station
+    var stations = {{ stations|tojson|safe }};
+    var markers = {};
+
+    for (var stationId in stations) {
+      var station = stations[stationId];
+      var marker = L.marker(station.position)
+        .addTo(map)
+        .bindPopup("<b>" + station.name + "</b><br>Lat: " + station.position[0] + "<br>Lon: " + station.position[1]);
+      
+      markers[stationId] = marker;
+      
+      // Add click handler
+      (function(id) {
+        marker.on('click', function() {
+          document.getElementById('station').value = id;
+          changeStation(id);
+        });
+      })(stationId);
+    }
+
+    // Create a variable to store the chart instance
+    let tempChart = null;
+
+    // Function to create or update the chart
+    function updateChart(station, data) {
+      const historical = data.filter(d => d.type === 'historical');
+      const forecast = data.filter(d => d.type === 'forecast');
+      const labels = data.map(d => d.timestamp);
+
+      const config = {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `Historical Temperature`,
+              data: historical.map(d => ({x: d.timestamp, y: d.temperature})),
+              borderColor: "#2c3e50",
+              backgroundColor: "rgba(44, 62, 80, 0.1)",
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: "#2c3e50",
+              pointBorderColor: "#ffffff",
+              pointBorderWidth: 2
+            },
+            {
+              label: `7-Day Forecast`,
+              data: forecast.map(d => ({x: d.timestamp, y: d.temperature})),
+              borderColor: "#3498db",
+              backgroundColor: "rgba(52, 152, 219, 0.1)",
+              borderWidth: 3,
+              borderDash: [8, 4],
+              fill: true,
+              tension: 0.4,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              pointBackgroundColor: "#3498db",
+              pointBorderColor: "#ffffff",
+              pointBorderWidth: 2
+            }
+          ]
+        },
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: `Historical Temperature`,
+                  data: historical.map(d => ({x: d.timestamp, y: d.temperature})),
+                  borderColor: "#2c3e50",
+                  backgroundColor: "rgba(44, 62, 80, 0.1)",
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4,
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
+                  pointBackgroundColor: "#2c3e50",
+                  pointBorderColor: "#ffffff",
+                  pointBorderWidth: 2
+                },
+                {
+                  label: `7-Day Forecast`,
+                  data: forecast.map(d => ({x: d.timestamp, y: d.temperature})),
+                  borderColor: "#3498db",
+                  backgroundColor: "rgba(52, 152, 219, 0.1)",
+                  borderWidth: 3,
+                  borderDash: [8, 4],
+                  fill: true,
+                  tension: 0.4,
+                  pointRadius: 5,
+                  pointHoverRadius: 7,
+                  pointBackgroundColor: "#3498db",
+                  pointBorderColor: "#ffffff",
+                  pointBorderWidth: 2
+                }
+              ]
+            },
+            options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: `Weather Station: ${station.toUpperCase()}`,
+                font: {
+                  size: 20,
+                  weight: '500',
+                  family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                },
+                padding: {
+                  top: 10,
+                  bottom: 30
+                }
+              },
+              legend: {
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                  padding: 20,
+                  font: {
+                    size: 14,
+                    family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                  },
+                  boxWidth: 6
+                }
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                titleColor: '#2c3e50',
+                titleFont: {
+                  size: 14,
+                  weight: '600',
+                  family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                },
+                bodyColor: '#2c3e50',
+                bodyFont: {
+                  size: 13,
+                  family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                },
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 1,
+                padding: 12,
+                callbacks: {
+                  label: function(context) {
+                    return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}°C`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                title: {
+                  display: true,
+                  text: 'Temperature (°C)',
+                  padding: {
+                    bottom: 10
+                  },
+                  font: {
+                    size: 14,
+                    weight: '500',
+                    family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                  }
+                },
+                grid: {
+                  color: 'rgba(0,0,0,0.06)',
+                  drawBorder: false
+                },
+                ticks: {
+                  padding: 10,
+                  font: {
+                    size: 12,
+                    family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                  }
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Date',
+                  padding: {
+                    top: 10
+                  },
+                  font: {
+                    size: 14,
+                    weight: '500',
+                    family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                  }
+                },
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 45,
+                  padding: 10,
+                  font: {
+                    size: 12,
+                    family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                  }
+                }
+              }
+            },
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            }
+          }
+      };
+
+      if (tempChart) {
+        // Update existing chart
+        tempChart.data = config.data;
+        tempChart.options = config.options;
+        tempChart.update('none'); // Update without animation for better performance
+      } else {
+        // Create new chart
+        tempChart = new Chart(document.getElementById("tempChart"), config);
+      }
+    }
+
+    // Initialize the chart for the current station
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialStation = urlParams.get('station') || 'mati';
+    document.getElementById('station').value = initialStation;
+
+    function changeStation(station) {
+      // Update URL without reloading the page
+      const url = new URL(window.location);
+      url.searchParams.set('station', station);
+      window.history.pushState({}, '', url);
+      
+      // Update marker highlights
+      if (selectedMarker) {
+        selectedMarker.setIcon(new L.Icon.Default());
+      }
+      
+      if (markers[station]) {
+        markers[station].openPopup();
+        map.panTo(markers[station].getLatLng());
+      }
+      
+      // Fetch and update the chart with new data
+      fetch(`/daily-stats?station=${station}`)
+        .then(r => r.json())
+        .then(data => {
+          updateChart(station, data);
+        })
+        .catch(error => {
+          console.error('Error fetching data:', error);
+          if (tempChart) {
+            tempChart.destroy();
+            tempChart = null;
+          }
+          document.getElementById('tempChart').innerHTML = 'Error loading weather data. Please try again.';
+        });
+    }
+
+    // Initialize the chart
+    changeStation(initialStation);
+  </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Davao Oriental Weather Stations</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    #map {
+      height: 600px;
+      width: 100%;
+    }
+    body {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">Davao Oriental Weather Stations</h2>
+  <div id="map"></div>
+
+  <script>
+    // Initialize map (centered roughly in Davao Oriental)
+    var map = L.map('map').setView([7.2, 126.3], 9);
+
+    // Base map layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Weather stations data
+    // var stations = {
+    //   'boston': {name: 'Boston Weather Station', position: [7.870517, 126.376426]},
+    //   'cateel': {name: 'Cateel Weather Station', position: [7.763384, 126.410727]},
+    //   'baganga': {name: 'Baganga Weather Station', position: [7.580644, 126.567651]},
+    //   'caraga': {name: 'Caraga Weather Station', position: [7.328232, 126.565358]},
+    //   'manay': {name: 'Manay Weather Station', position: [7.210933, 126.539914]},
+    //   'tarragona': {name: 'Tarragona Weather Station', position: [7.0497525, 126.449752]}, // corrected longitude
+    //   'mati': {name: 'Mati Weather Station', position: [6.952166, 126.216676]},
+    //   'banaybanay': {name: 'Banaybanay Weather Station', position: [6.9669, 126.010756]},
+    //   'lupon': {name: 'Lupon Weather Station', position: [6.897712, 126.145256]},
+    //   'san_isidro': {name: 'San Isidro Weather Station', position: [6.834534, 126.087172]},
+    //   'governor_generoso': {name: 'Governor Generoso Weather Station', position: [6.653526, 126.07201]}
+    // };
+
+    // Loop through stations and add markers
+    for (var key in stations) {
+      var station = stations[key];
+      L.marker(station.position)
+        .addTo(map)
+        .bindPopup("<b>" + station.name + "</b><br>Lat: " + station.position[0] + "<br>Lon: " + station.position[1]);
+    }
+  </script>
+</body>
+</html>
