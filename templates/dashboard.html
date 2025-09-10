@@ -124,12 +124,15 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 50px;
-      height: 50px;
-      border: 5px solid var(--background-color);
-      border-top: 5px solid var(--accent-color);
+      width: 80px;
+      height: 80px;
+      border: 8px solid var(--background-color);
+      border-top: 8px solid var(--accent-color);
       border-radius: 50%;
       animation: spin 1s linear infinite;
+      z-index: 1000;
+      background-color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
     }
 
     @keyframes spin {
@@ -162,6 +165,14 @@
     }
     
     function updateChart(station) {
+      // Show loading spinner
+      document.getElementById('chartLoading').style.display = 'block';
+      
+      // If there's an existing chart, destroy it
+      if (Chart.getChart('tempChart')) {
+        Chart.getChart('tempChart').destroy();
+      }
+      
       fetch(`/daily-stats?station=${station}`)
         .then(r => r.json())
         .then(data => {
@@ -169,22 +180,15 @@
           const historical = data.filter(d => d.type === 'historical');
           const forecast = data.filter(d => d.type === 'forecast');
           
-          // Get the chart instance
-          const chart = Chart.getChart('tempChart');
+          // Create new chart with the data
+          updateChart(station, data);
           
-          // Update the datasets
-          chart.data.labels = data.map(d => d.timestamp);
-          chart.data.datasets[0].data = historical.map(d => ({x: d.timestamp, y: d.temperature}));
-          chart.data.datasets[1].data = forecast.map(d => ({x: d.timestamp, y: d.temperature}));
-          
-          // Update chart title
-          chart.options.plugins.title.text = `Weather Station: ${station.toUpperCase()}`;
-          
-          // Refresh the chart
-          chart.update();
+          // Hide loading spinner
+          document.getElementById('chartLoading').style.display = 'none';
         })
         .catch(error => {
           console.error('Error fetching data:', error);
+          document.getElementById('chartLoading').style.display = 'none';
           document.getElementById('tempChart').innerHTML = 'Error loading weather data. Please try again.';
         });
     }
@@ -476,6 +480,9 @@
     const urlParams = new URLSearchParams(window.location.search);
     const initialStation = urlParams.get('station') || 'mati';
     document.getElementById('station').value = initialStation;
+
+    // Show loading spinner immediately for initial load
+    document.getElementById('chartLoading').style.display = 'block';
 
     function changeStation(station) {
       // Update URL without reloading the page
