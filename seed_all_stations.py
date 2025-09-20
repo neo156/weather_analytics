@@ -14,7 +14,7 @@ STATIONS = {
     'baganga': {'name': 'Baganga Weather Station', 'position': [7.580644, 126.567651]},
     'caraga': {'name': 'Caraga Weather Station', 'position': [7.328232, 126.565358]},
     'manay': {'name': 'Manay Weather Station', 'position': [7.210933, 126.539914]},
-    'tarragona': {'name': 'Tarragona Weather Station', 'position': [7.0497525, 7.049752]},
+    'tarragona': {'name': 'Tarragona Weather Station', 'position': [7.0497525, 125.567651]},
     'mati': {'name': 'Mati Weather Station', 'position': [6.952166 , 126.216676]},
     'banaybanay': {'name': 'Banaybanay Weather Station', 'position': [6.9669, 126.010756]},
     'lupon': {'name': 'Lupon Weather Station', 'position': [ 6.897712, 126.145256]},

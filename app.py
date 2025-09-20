@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, jsonify
+from flask import Flask, request, jsonify, render_template, jsonify, send_from_directory
 from pymongo import MongoClient
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
@@ -9,7 +9,31 @@ import matplotlib.pyplot as plt
 import io, base64
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='')
+
+@app.route('/amcharts_weather_icons_1.0.0/<path:path>')
+def send_weather_icons(path):
+    return send_from_directory('amcharts_weather_icons_1.0.0', path)
+
+def get_weather_icon(condition):
+    """Map weather conditions to Weather Icons classes"""
+    icon_map = {
+        'clear': 'wi-day-sunny',
+        'sunny': 'wi-day-sunny',
+        'partly cloudy': 'wi-day-cloudy',
+        'cloudy': 'wi-cloudy',
+        'overcast': 'wi-cloudy',
+        'rain': 'wi-rain',
+        'light rain': 'wi-sprinkle',
+        'heavy rain': 'wi-rain-mix',
+        'thunderstorm': 'wi-thunderstorm',
+        'snow': 'wi-snow',
+        'fog': 'wi-fog',
+        'mist': 'wi-fog',
+        'windy': 'wi-strong-wind'
+    }
+    condition = condition.lower() if condition else 'clear'
+    return icon_map.get(condition, 'wi-day-sunny')
 
 # Function to get weather stations from database
 def get_weather_stations():
@@ -30,12 +54,56 @@ def get_weather_stations():
         }
     return stations
 
-# MongoDB connection
+# MongoDB connection with proper timeout and retry settings
 MONGODB_URI = os.environ.get('MONGODB_URI', 
     "mongodb+srv://ninoespe:ninoespe@cluster0.9gbawhm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-client = MongoClient(MONGODB_URI)
+
+# Configure MongoDB client with proper settings
+client = MongoClient(
+    MONGODB_URI,
+    serverSelectionTimeoutMS=120000,  # Increase timeout to 30 seconds
+    connectTimeoutMS=30000,
+    socketTimeoutMS=30000,
+    maxPoolSize=50,
+    retryWrites=True,
+    retryReads=True,
+    ssl=True,
+    tlsAllowInvalidCertificates=True  # Only if needed for development
+)
+
+try:
+    # Verify the connection
+    client.admin.command('ping')
+    print("Successfully connected to MongoDB!")
+except Exception as e:
+    print(f"Failed to connect to MongoDB: {e}")
+    raise
+
 db = client["weatherDB"]
 collection = db["weather_data"]
+
+@app.route("/hourly-stats")
+def hourly_stats():
+    selected_station = request.args.get('station', 'mati')
+    
+    # Get the current datetimez
+    current_time = datetime.now()
+    
+    # Query for the last 24 hours of data
+    query = {
+        "station_meta.station_id": {"$regex": f"^{selected_station}$", "$options": "i"},
+        "timestamp": {
+            "$gte": current_time - pd.Timedelta(hours=24),
+            "$lte": current_time
+        }
+    }
+    
+    hourly_data = list(collection.find(
+        query,
+        {"_id": 0, "timestamp": 1, "temperature": 1, "humidity": 1, "wind_speed": 1}
+    ).sort("timestamp", 1))
+    
+    return jsonify(hourly_data)
 
 @app.route("/daily-stats")
 def daily_stats():
@@ -154,9 +222,29 @@ def dashboard():
 
     forecast = model_fit.forecast(steps=7)
 
+    # Get weather conditions and map to icon
+    weather_condition = "clear"  # You should get this from your data
+    weather_icon = get_weather_icon(weather_condition)
+
+    # Get weather conditions for each time slot
+    weather_conditions = {
+        '6:00 AM': 'cloudy',
+        '9:00 AM': 'partly cloudy',
+        '12:00 PM': 'clear',
+        '3:00 PM': 'clear',
+        '6:00 PM': 'clear',
+        '9:00 PM': 'clear'
+    }
+    
+    # Map conditions to icons
+    weather_icons = {time: get_weather_icon(condition) 
+                    for time, condition in weather_conditions.items()}
+    
     return render_template('dashboard.html',
                          stations=weather_stations,
                          selected_station=selected_station,
+                         weather_icons=weather_icons,
+                         current_weather_icon=get_weather_icon('clear'),
                          current_time=datetime.now().strftime('%B %d, %Y %H:%M'))
 
 if __name__ == "__main__":

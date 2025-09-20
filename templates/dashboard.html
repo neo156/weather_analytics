@@ -1,47 +1,198 @@
 <!DOCTYPE html>
 <html>
 <head>
+   <link rel="icon" type="image/png" href="logo.ico">
   <title>Weather Analytics Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css">
+
   <style>
     :root {
-      --primary-color: #2c3e50;
-      --accent-color: #3498db;
-      --background-color: #f8f9fa;
+      --primary-color: #1e293b;
+      --accent-color: #0284c7;
+      --background-color: #e2f3fe;
       --card-background: #ffffff;
-      --text-color: #2c3e50;
-      --border-radius: 12px;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+      --text-color: #1e293b;
+      --secondary-text: #64748b;
+      --border-radius: 13px;
+      --shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
       --transition: all 0.3s ease;
+      --sidenav-width: 240px;
+      --scale: 0.8;
+    }
+
+    /* Side Navigation Styles */
+    .sidenav {
+      height: 100vh;
+      width: var(--sidenav-width);
+      position: fixed;
+      z-index: 1000;
+      top: 0;
+      left: 0;
+      background-color: var(--card-background);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+      box-sizing: border-box;
+      font-size: 0.9em;
+    }
+
+    .sidenav-header {
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: 16px;
+    }
+
+    .sidenav-title {
+      font-size: 1.2em;
+      color: var(--primary-color);
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .sidenav-subtitle {
+      color: var(--secondary-text);
+      font-size: 0.8em;
+      margin-top: 4px;
+    }
+
+    .station-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .station-item {
+      padding: 10px 13px;
+      margin: 6px 0;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .station-item:hover {
+      background-color: var(--background-color);
+    }
+
+    .station-item.active {
+      background-color: var(--accent-color);
+      color: white;
+    }
+
+    .station-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background-color: var(--background-color);
+    }
+
+    .station-item.active .station-icon {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .station-info {
+      flex: 1;
+    }
+
+    .station-name {
+      font-weight: 500;
+      margin: 0;
+      font-size: 0.9em;
+    }
+
+    .station-coords {
+      font-size: 0.7em;
+      color: var(--secondary-text);
+      margin: 0;
+    }
+
+    .station-item.active .station-coords {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Adjust main content to accommodate sidenav */
+    .container {
+      margin-left: var(--sidenav-width);
+      transition: margin-left 0.3s ease;
+    }
+
+    /* Toggle button for mobile */
+    .sidenav-toggle {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1001;
+      background: var(--card-background);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transform: scale(0.8);
+    }
+
+    @media (max-width: 768px) {
+      .sidenav {
+        transform: translateX(-100%);
+      }
+
+      .sidenav.active {
+        transform: translateX(0);
+      }
+
+      .sidenav-toggle {
+        display: block;
+      }
+
+      .container {
+        margin-left: 0;
+      }
     }
 
     body {
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
-      padding: 24px;
+      padding: 0;
       background-color: var(--background-color);
       color: var(--text-color);
       line-height: 1.6;
+      min-height: 100vh;
     }
 
     .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      background-color: var(--card-background);
-      padding: 32px;
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow);
+      max-width: 960px;
+      margin-left: calc(var(--sidenav-width) + 26px);
+      margin-right: 26px;
+      padding: 26px;
+      transition: margin-left 0.3s ease;
+      transform: scale(var(--scale));
+      transform-origin: top left;
     }
 
-    h2 {
-      color: var(--primary-color);
-      margin-bottom: 32px;
-      text-align: center;
-      font-size: 2.2em;
-      font-weight: 600;
-      letter-spacing: -0.5px;
+    @media (max-width: 768px) {
+      .container {
+        margin-left: 26px;
+        margin-right: 26px;
+        padding: 13px;
+      }
+    }
+
+    .location {
+      font-size: 3rem;
+      margin: 0 0 16px;
+      color: var(--text-color);
+      transition: opacity 0.2s ease-in-out;
     }
 
     h3 {
@@ -51,17 +202,107 @@
       font-weight: 500;
     }
 
+    .hourly-forecast {
+      margin-bottom: 48px;
+    }
+
+    .hourly-forecast h3 {
+      color: var(--secondary-text);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    .hourly-items {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 24px;
+      padding: 32px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--border-radius);
+    }
+
+    .hour-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .hour-item .time {
+      color: var(--secondary-text);
+      font-size: 0.9rem;
+    }
+
+    .hour-item .temp {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .air-conditions {
+      margin-top: 32px;
+    }
+
+    .air-conditions h3 {
+      color: var(--secondary-text);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    .conditions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .condition-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--border-radius);
+    }
+
+    .condition-icon {
+      font-size: 1.5rem;
+    }
+
+    .condition-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .condition-label {
+      color: var(--secondary-text);
+      font-size: 0.9rem;
+    }
+
+    .condition-value {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .additional-info {
+      width: 120%;
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+    }
+
     .chart-container, .map-container {
       background: var(--card-background);
       padding: 24px;
       border-radius: var(--border-radius);
       box-shadow: var(--shadow);
-    }
-
-    .chart-container:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08);
-      transition: var(--transition);
+      margin-bottom: 32px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     #map {
@@ -72,50 +313,74 @@
     }
 
     .station-selector {
+      margin-bottom: 32px;
+    }
+
+    .weather-main {
+      background: var(--card-background);
+      border-radius: var(--border-radius);
+      padding: 32px;
+      width: 120%;
+      box-shadow: var(--shadow);
+      box-sizing: border-box;
+    }
+
+    .current-weather {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+
+      
+    
+    }
+
+    .weather-info {
       text-align: center;
-      margin-bottom: 40px;
-      padding: 20px;
-      background: linear-gradient(to right, rgba(52, 152, 219, 0.1), rgba(44, 62, 80, 0.1));
-      border-radius: var(--border-radius);
     }
 
-    .station-selector label {
-      margin-right: 16px;
+    .temp-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .current-temp {
+      font-size: 7rem;
       font-weight: 500;
-      color: var(--primary-color);
-      font-size: 1.1em;
+      line-height: 1;
+      margin-right: -90px;
     }
 
-    select {
-      padding: 12px 24px;
-      border-radius: var(--border-radius);
-      border: 2px solid rgba(0, 0, 0, 0.1);
-      font-size: 1em;
-      background-color: var(--card-background);
-      cursor: pointer;
-      min-width: 280px;
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 1rem center;
-      background-size: 1em;
-      transition: var(--transition);
+    .weather-icon img {
+      width: 240px;
+      height: 240px;
+      margin-bottom: 16px;
+      transition: opacity 0.2s ease-in-out;
+    }
+    
+    .weather-icon.small img {
+      width: 90px;
+      height: 90px;
     }
 
-    select:hover, select:focus {
-      border-color: var(--accent-color);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    .weather-description {
+      color: var(--secondary-text);
+      font-size: 1.1rem;
+      margin-top: 8px;
     }
+
+
 
     .forecast-note {
       text-align: center;
-      color: #666;
+      color: #5f6368;
       font-style: italic;
       margin-bottom: 24px;
       padding: 12px;
-      background-color: rgba(52, 152, 219, 0.05);
+      background-color: rgba(66, 133, 244, 0.05);
       border-radius: var(--border-radius);
+      border: 1px solid rgba(66, 133, 244, 0.1);
+    
     }
 
     .loading-spinner {
@@ -126,13 +391,13 @@
       transform: translate(-50%, -50%);
       width: 80px;
       height: 80px;
-      border: 8px solid var(--background-color);
+      border: 8px solid var(--card-background);
       border-top: 8px solid var(--accent-color);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       z-index: 1000;
-      background-color: rgba(255, 255, 255, 0.8);
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      background-color: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
 
     @keyframes spin {
@@ -140,50 +405,254 @@
       100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
+    /* Custom popup styles */
+    .custom-popup .leaflet-popup-content-wrapper {
+      background: var(--card-background);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
+    .custom-popup .leaflet-popup-content {
+      margin: 0;
+      padding: 0;
+    }
+
+    .custom-popup .leaflet-popup-tip {
+      background: var(--card-background);
+    }
+
+    .station-popup {
+      padding: 16px;
+      min-width: 300px;
+      max-width: 500px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .station-popup h3 {
+      margin: 0 0 12px 0;
+      color: var(--primary-color);
+      font-size: 1.2em;
+      font-weight: 600;
+    }
+
+    .station-popup h4 {
+      margin: 15px 0 10px 0;
+      color: var(--secondary-text);
+      font-size: 1em;
+      font-weight: 500;
+    }
+
+    .popup-loader {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--background-color);
+      border-radius: 50%;
+      border-top-color: var(--accent-color);
+      animation: popup-spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes popup-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hourly-data-table {
+      margin-top: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .hourly-data-table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+
+    .hourly-data-table th,
+    .hourly-data-table td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .hourly-data-table th {
+      background-color: var(--background-color);
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .hourly-data-table tr:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+
     .grid-container {
       display: grid;
       grid-template-columns: 1fr;
       gap: 32px;
-      margin-top: 32px;
+      width: 100%;
     }
 
     @media (min-width: 1200px) {
       .grid-container {
         grid-template-columns: 1fr 1fr;
+        width: 100%;
       }
     }
   </style>
   <script>
-    function changeStation(station) {
-      // Update URL without reloading the page
-      const url = new URL(window.location);
-      url.searchParams.set('station', station);
-      window.history.pushState({}, '', url);
-      
-      // Fetch new data and update chart
-      updateChart(station);
+    // Side Navigation Functions
+    function toggleSidenav() {
+      const sidenav = document.querySelector('.sidenav');
+      sidenav.classList.toggle('active');
     }
-    
+
+    function updateStationSelection(stationId) {
+      // Update active state in side navigation
+      document.querySelectorAll('.station-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector(`.station-item[onclick*="${stationId}"]`).classList.add('active');
+      
+      // Close sidenav on mobile after selection
+      if (window.innerWidth <= 768) {
+        document.querySelector('.sidenav').classList.remove('active');
+      }
+    }
+
+    // Function to get the appropriate weather icon based on conditions
+    function getWeatherIcon(condition, isNight = false) {
+      const iconBase = '/amcharts_weather_icons_1.0.0/animated/';
+      const icons = {
+        'clear': isNight ? 'night.svg' : 'day.svg',
+        'sunny': 'day.svg',
+        'partly cloudy': isNight ? 'cloudy-night-2.svg' : 'cloudy-day-2.svg',
+        'cloudy': 'cloudy.svg',
+        'overcast': 'cloudy.svg',
+        'light rain': 'rainy-1.svg',
+        'rain': 'rainy-4.svg',
+        'heavy rain': 'rainy-6.svg',
+        'thunderstorm': 'thunder.svg',
+        'snow': 'snowy-3.svg',
+        'default': 'day.svg'
+      };
+      condition = condition.toLowerCase();
+      return iconBase + (icons[condition] || icons.default);
+    }
+
+    function createChart(station, data) {
+      const historical = data.filter(d => d.type === 'historical');
+      const forecast = data.filter(d => d.type === 'forecast');
+      const labels = data.map(d => d.timestamp);
+
+      const config = {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `Historical Temperature`,
+              data: historical.map(d => ({x: d.timestamp, y: d.temperature})),
+              borderColor: "#2c3e50",
+              backgroundColor: "rgba(44, 62, 80, 0.1)",
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: "#2c3e50",
+              pointBorderColor: "#ffffff",
+              pointBorderWidth: 2
+            },
+            {
+              label: `7-Day Forecast`,
+              data: forecast.map(d => ({x: d.timestamp, y: d.temperature})),
+              borderColor: "#3498db",
+              backgroundColor: "rgba(52, 152, 219, 0.1)",
+              borderWidth: 3,
+              borderDash: [8, 4],
+              fill: true,
+              tension: 0.4,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              pointBackgroundColor: "#3498db",
+              pointBorderColor: "#ffffff",
+              pointBorderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: `Weather Station: ${station.toUpperCase()}`,
+              font: {
+                size: 20,
+                weight: '500',
+                family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+              },
+              padding: {
+                top: 10,
+                bottom: 30
+              }
+            },
+            legend: {
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 20,
+                font: {
+                  size: 14,
+                  family: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif"
+                },
+                boxWidth: 6
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              titleColor: '#2c3e50',
+              bodyColor: '#2c3e50',
+              borderColor: 'rgba(0, 0, 0, 0.1)',
+              borderWidth: 1,
+              padding: 12
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              title: {
+                display: true,
+                text: 'Temperature (°C)'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Date'
+              }
+            }
+          }
+        }
+      };
+
+      if (tempChart) {
+        tempChart.destroy();
+      }
+      tempChart = new Chart(document.getElementById("tempChart"), config);
+    }
+
     function updateChart(station) {
       // Show loading spinner
       document.getElementById('chartLoading').style.display = 'block';
       
-      // If there's an existing chart, destroy it
-      if (Chart.getChart('tempChart')) {
-        Chart.getChart('tempChart').destroy();
-      }
-      
       fetch(`/daily-stats?station=${station}`)
         .then(r => r.json())
         .then(data => {
-          // Split data into historical and forecast
-          const historical = data.filter(d => d.type === 'historical');
-          const forecast = data.filter(d => d.type === 'forecast');
-          
-          // Create new chart with the data
-          updateChart(station, data);
-          
-          // Hide loading spinner
+          createChart(station, data);
           document.getElementById('chartLoading').style.display = 'none';
         })
         .catch(error => {
@@ -195,32 +664,146 @@
   </script>
 </head>
 <body>
-  <div class="container">
-    <h2>Davao Oriental Weather Analytics Dashboard</h2>
-    
-    <div class="station-selector">
-      <label for="station">Select Weather Station:</label>
-      <select id="station" onchange="changeStation(this.value)">
-        {% for station_id, info in stations.items() %}
-        <option value="{{ station_id }}" {% if station_id == selected_station %}selected{% endif %}>
-          {{ info.name }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
+  <button class="sidenav-toggle" onclick="toggleSidenav()">
+    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2">
+      <path d="M3 12h18M3 6h18M3 18h18"></path>
+    </svg>
+  </button>
 
-    <div class="grid-container">
-      <div class="map-container">
-        <h3>Weather Stations Map</h3>
-        <div id="map"></div>
+  <div class="sidenav">
+    <div class="sidenav-header">
+      <h1 class="sidenav-title">Weather Analytics</h1>
+      <p class="sidenav-subtitle">Select a weather station</p>
+    </div>
+    <ul class="station-list">
+      {% for station_id, info in stations.items() %}
+      <li class="station-item {% if station_id == selected_station %}active{% endif %}" 
+          onclick="changeStation('{{ station_id }}')">
+        <div class="station-icon">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+          </svg>
+        </div>
+        <div class="station-info">
+          <p class="station-name">{{ info.name }}</p>
+          <p class="station-coords">{{ info.position[0]|round(4) }}°, {{ info.position[1]|round(4) }}°</p>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="container">
+
+    <div class="weather-main">
+      <div class="current-weather">
+        <h1 class="location">{{ stations[selected_station].name }}</h1>
+        <div class="weather-info">
+          <div class="temp-display">
+            <span class="current-temp">31°</span>
+            <div class="weather-icon">
+              <img src="/amcharts_weather_icons_1.0.0/animated/day.svg" alt="Weather icon">
+            </div>
+          </div>
+          <p class="weather-description">Chance of rain: 0%</p>
+        </div>
       </div>
 
-      <div class="chart-container" style="position: relative;">
-        <div class="chart-info">
-          <p class="forecast-note">Note: Dashed line indicates 7-day temperature forecast based on historical data</p>
+      <div class="weather-details">
+        <div class="hourly-forecast">
+          <h3>TODAY'S FORECAST</h3>
+          <div class="hourly-items">
+            <div class="hour-item">
+              <span class="time">6:00 AM</span>
+              <div class="weather-icon small">
+                <img src="/amcharts_weather_icons_1.0.0/animated/cloudy.svg" alt="Cloudy">
+              </div>
+              <span class="temp">25°</span>
+            </div>
+            <div class="hour-item">
+              <span class="time">9:00 AM</span>
+              <div class="weather-icon small">
+                <img src="/amcharts_weather_icons_1.0.0/animated/day.svg" alt="Sunny">
+              </div>
+              <span class="temp">28°</span>
+            </div>
+            <div class="hour-item">
+              <span class="time">12:00 PM</span>
+              <div class="weather-icon small">
+                 <img src="/amcharts_weather_icons_1.0.0/animated/rainy-5.svg" alt="Rainy">
+              </div>
+              <span class="temp">33°</span>
+            </div>
+            <div class="hour-item">
+              <span class="time">3:00 PM</span>
+              <div class="weather-icon small">
+                <img src="/amcharts_weather_icons_1.0.0/animated/thunder.svg" alt="Thunder">
+              </div>
+              <span class="temp">34°</span>
+            </div>
+            <div class="hour-item">
+              <span class="time">6:00 PM</span>
+              <div class="weather-icon small">
+                 <img src="/amcharts_weather_icons_1.0.0/animated/thunder.svg" alt="Thunder">
+              </div>
+              <span class="temp">32°</span>
+            </div>
+            <div class="hour-item">
+              <span class="time">9:00 PM</span>
+              <div class="weather-icon small">
+                 <img src="/amcharts_weather_icons_1.0.0/animated/thunder.svg" alt="Thunder">
+              </div>
+              <span class="temp">30°</span>
+            </div>
+          </div>
         </div>
-        <div id="chartLoading" class="loading-spinner"></div>
+
+        <div class="air-conditions">
+          <h3>AIR CONDITIONS</h3>
+          <div class="conditions-grid">
+            <div class="condition-item">
+              <div class="condition-icon"><i class="wi wi-thermometer"></i></div>
+              <div class="condition-info">
+                <span class="condition-label">Real Feel</span>
+                <span class="condition-value">30°</span>
+              </div>
+            </div>
+            <div class="condition-item">
+              <div class="condition-icon"><i class="wi-windy"></i></div>
+              <div class="condition-info">
+                <span class="condition-label">Wind</span>
+                <span class="condition-value">0.2 km/h</span>
+              </div>
+            </div>
+            <div class="condition-item">
+              <div class="condition-icon"><i class="wi wi-raindrop"></i></div>
+              <div class="condition-info">
+                <span class="condition-label">Chance of rain</span>
+                <span class="condition-value">0%</span>
+              </div>
+            </div>
+            <div class="condition-item">
+              <div class="condition-icon"><i class="wi wi-day-sunny"></i></div>
+              <div class="condition-info">
+                <span class="condition-label">UV Index</span>
+                <span class="condition-value">3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="additional-info">
+      <div class="chart-container">
+        <h3>Temperature Trend</h3>
         <canvas id="tempChart"></canvas>
+        <div id="chartLoading" class="loading-spinner"></div>
+      </div>
+      
+      <div class="map-container">
+        <h3>Weather Station Location</h3>
+        <div id="map"></div>
       </div>
     </div>
   </div>  <script>
@@ -254,21 +837,105 @@
     var stations = {{ stations|tojson|safe }};
     var markers = {};
 
+    function createHourlyDataTable(data) {
+      let table = '<div class="hourly-data-table"><table>';
+      table += '<thead><tr><th>Time</th><th>Temperature</th><th>Humidity</th><th>Wind Speed</th></tr></thead><tbody>';
+      
+      data.forEach(record => {
+        const date = new Date(record.timestamp);
+        table += `<tr>
+          <td>${date.toLocaleTimeString()}</td>
+          <td>${record.temperature.toFixed(1)}°C</td>
+          <td>${record.humidity ? record.humidity.toFixed(1) + '%' : 'N/A'}</td>
+          <td>${record.wind_speed ? record.wind_speed.toFixed(1) + ' m/s' : 'N/A'}</td>
+        </tr>`;
+      });
+      
+      table += '</tbody></table></div>';
+      return table;
+    }
+
     for (var stationId in stations) {
       var station = stations[stationId];
       var marker = L.marker(station.position)
         .addTo(map)
-        .bindPopup("<b>" + station.name + "</b><br>Lat: " + station.position[0] + "<br>Lon: " + station.position[1]);
+        .bindPopup(
+          `<div class="station-popup">
+            <h3>${station.name}</h3>
+            <p>Loading data...</p>
+          </div>`,
+          { 
+            maxWidth: 500,
+            maxHeight: 400,
+            className: 'custom-popup'
+          }
+        );
       
       markers[stationId] = marker;
       
       // Add click handler
-      (function(id) {
-        marker.on('click', function() {
-          document.getElementById('station').value = id;
+      (function(id, stationMarker) {
+        stationMarker.on('click', function() {
           changeStation(id);
+          
+          // Show loading state with more detailed initial popup
+          stationMarker.setPopupContent(`
+            <div class="station-popup">
+              <h3>${stations[id].name}</h3>
+              <p>Location: ${stations[id].position[0].toFixed(4)}°, ${stations[id].position[1].toFixed(4)}°</p>
+              <div class="hourly-data">
+                <h4>Last 24 Hours Data</h4>
+                <p>Loading weather data...</p>
+                <div class="popup-loader"></div>
+              </div>
+            </div>
+          `);
+          stationMarker.openPopup();
+          
+          // Fetch hourly data when marker is clicked
+          fetch(`/hourly-stats?station=${id}`)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.json();
+            })
+            .then(data => {
+              console.log('Received data:', data); // Debug log
+              if (data && data.length > 0) {
+                const popupContent = `
+                  <div class="station-popup">
+                    <h3>${stations[id].name}</h3>
+                    <p>Location: ${stations[id].position[0].toFixed(4)}°, ${stations[id].position[1].toFixed(4)}°</p>
+                    <div class="hourly-data">
+                      <h4>Last 24 Hours Data</h4>
+                      ${createHourlyDataTable(data)}
+                    </div>
+                  </div>
+                `;
+                stationMarker.setPopupContent(popupContent);
+              } else {
+                stationMarker.setPopupContent(`
+                  <div class="station-popup">
+                    <h3>${stations[id].name}</h3>
+                    <p>Location: ${stations[id].position[0].toFixed(4)}°, ${stations[id].position[1].toFixed(4)}°</p>
+                    <p>No weather data available for the last 24 hours</p>
+                  </div>
+                `);
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching hourly data:', error);
+              stationMarker.setPopupContent(`
+                <div class="station-popup">
+                  <h3>${stations[id].name}</h3>
+                  <p>Location: ${stations[id].position[0].toFixed(4)}°, ${stations[id].position[1].toFixed(4)}°</p>
+                  <p>Error loading weather data. Please try again later.</p>
+                </div>
+              `);
+            });
         });
-      })(stationId);
+      })(stationId, marker);
     }
 
     // Create a variable to store the chart instance
@@ -316,41 +983,6 @@
             }
           ]
         },
-            type: 'line',
-            data: {
-              labels: labels,
-              datasets: [
-                {
-                  label: `Historical Temperature`,
-                  data: historical.map(d => ({x: d.timestamp, y: d.temperature})),
-                  borderColor: "#2c3e50",
-                  backgroundColor: "rgba(44, 62, 80, 0.1)",
-                  borderWidth: 3,
-                  fill: true,
-                  tension: 0.4,
-                  pointRadius: 4,
-                  pointHoverRadius: 6,
-                  pointBackgroundColor: "#2c3e50",
-                  pointBorderColor: "#ffffff",
-                  pointBorderWidth: 2
-                },
-                {
-                  label: `7-Day Forecast`,
-                  data: forecast.map(d => ({x: d.timestamp, y: d.temperature})),
-                  borderColor: "#3498db",
-                  backgroundColor: "rgba(52, 152, 219, 0.1)",
-                  borderWidth: 3,
-                  borderDash: [8, 4],
-                  fill: true,
-                  tension: 0.4,
-                  pointRadius: 5,
-                  pointHoverRadius: 7,
-                  pointBackgroundColor: "#3498db",
-                  pointBorderColor: "#ffffff",
-                  pointBorderWidth: 2
-                }
-              ]
-            },
             options: {
             responsive: true,
             plugins: {
@@ -477,18 +1109,25 @@
     }
 
     // Initialize the chart for the current station
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialStation = urlParams.get('station') || 'mati';
-    document.getElementById('station').value = initialStation;
-
-    // Show loading spinner immediately for initial load
-    document.getElementById('chartLoading').style.display = 'block';
+    document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialStation = urlParams.get('station') || 'mati';
+      
+      // Show loading spinner immediately for initial load
+      document.getElementById('chartLoading').style.display = 'block';
+      
+      // Initialize the chart
+      changeStation(initialStation);
+    });
 
     function changeStation(station) {
       // Update URL without reloading the page
       const url = new URL(window.location);
       url.searchParams.set('station', station);
       window.history.pushState({}, '', url);
+      
+      // Update side navigation
+      updateStationSelection(station);
       
       // Update marker highlights
       if (selectedMarker) {
@@ -498,7 +1137,25 @@
       if (markers[station]) {
         markers[station].openPopup();
         map.panTo(markers[station].getLatLng());
+        selectedMarker = markers[station];
       }
+
+      // Update location heading with animation
+      const locationHeading = document.querySelector('.location');
+      const weatherIcon = document.querySelector('.weather-icon img');
+      
+      locationHeading.style.opacity = '0';
+      weatherIcon.style.opacity = '0';
+      
+      setTimeout(() => {
+        locationHeading.textContent = stations[station].name;
+        // Update weather icon based on time of day and conditions
+        const isNight = new Date().getHours() < 6 || new Date().getHours() > 18;
+        weatherIcon.src = getWeatherIcon('clear', isNight); // You can update this based on actual weather data
+        
+        locationHeading.style.opacity = '1';
+        weatherIcon.style.opacity = '1';
+      }, 200);
       
       // Show loading spinner
       document.getElementById('chartLoading').style.display = 'block';
@@ -525,8 +1182,7 @@
         });
     }
 
-    // Initialize the chart
-    changeStation(initialStation);
+
   </script>
 </body>
 </html>
